@@ -1,3 +1,4 @@
+import dsp
 import math
 import matplotlib
 import matplotlib.pyplot as plt
@@ -108,6 +109,27 @@ def plot_selected_data(audio_data: npt.NDArray[np.float64], selected_audio_data:
     plt.tight_layout()
     plt.show()
 
+
+def plot_spectrum(blob_data: npt.NDArray[np.float64], sample_rate_hz: float, freq_cutoff_hz: float) -> None:
+    freqs, spectrum = dsp.fft(blob_data, sample_rate_hz)
+    
+    freqs = freqs[freqs < freq_cutoff_hz]
+    spectrum = spectrum[:len(freqs)]
+
+    magnitude: npt.NDArray[np.float128] = np.abs(spectrum)
+
+    print(freqs[np.argmax(magnitude)])
+
+    plt.figure(figsize=(24, 12))
+    plt.plot(freqs, magnitude)
+    plt.title("Frequency Spectrum")
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Magnitude")
+    plt.grid(True)
+
+    plt.show()
+
+
 if __name__ == "__main__":
     sr, data = wavfile.read("wav/A.wav")
     print(sr, data.shape)
@@ -125,3 +147,5 @@ if __name__ == "__main__":
     # Uncomment the line below to debug selection using the runs.
     # plot_selected_data(audio_data, create_selected_audio_data_array(audio_data, blob_boundaries), sr)
 
+    blob_start, blob_end = blob_boundaries[1]
+    plot_spectrum(audio_data[blob_start:blob_end+1], sr, 250.0)

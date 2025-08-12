@@ -1,2 +1,3 @@
-# Virtual environment:
+# Python specifics:
 .venv
+__pycache__
