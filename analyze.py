@@ -12,7 +12,8 @@ matplotlib.use("Qt5Agg")
 
 
 # An activity threshold - continuous runs of samples that fall below this threshold are considered "noise".
-THRESHOLD: float = 250.0
+# TODO - Either find a better way to not assume int16, or find a better way to select data altogether.
+THRESHOLD: float = 250.0 / (np.iinfo(np.int16).max + 1)
 
 
 def is_region_nan(data: npt.NDArray[np.float64], region_start_index: int, region_length_samples: int) -> bool:
@@ -130,22 +131,53 @@ def plot_spectrum(blob_data: npt.NDArray[np.float64], sample_rate_hz: float, fre
     plt.show()
 
 
+def convert_audio_to_normalized_float64(audio_data: npt.NDArray) -> npt.NDArray[np.float64]:
+    """
+    Handles:
+    - Unsigned 8-bit PCM
+    - Signed 16/24/32-bit PCM
+    - 32-bit float WAVs
+    """
+
+    if np.issubdtype(audio_data.dtype, np.integer):
+        if data.dtype == np.uint8:
+            # Shift to [-128, 127]
+            shifted_data: npt.NDArray[np.int16] = audio_data.astype(np.int16) - 128
+            
+            # Convert to [-1.0, 1.0) by dividing by (127 + 1) = 128.
+            return shifted_data.astype(np.float64) / (np.iinfo(np.int8).max + 1)
+
+        else:
+            return audio_data.astype(np.float64) / (np.iinfo(audio_data.dtype).max + 1)
+    
+    elif np.issubdtype(audio_data.dtype, np.floating):
+        if np.any(np.abs(audio_data) > 1.0):
+            print(f"Warning: values greater than 1.0 detected in audio data with floating point type {audio_data.dtype}. Clipping to [-1.0, 1.0].")
+            
+            return np.clip(audio_data, -1.0, 1.0).astype(np.float64)
+        
+        return audio_data.astype(np.float64)
+
+
 if __name__ == "__main__":
     sr, data = wavfile.read("wav/A.wav")
-    print(sr, data.shape)
+    print(f"Sample rate: {sr}Hz")
+    print(f"Audio data shape: {data.shape}")
+    print(f"Raw audio data type: {data.dtype}")
 
-    audio_data: npt.NDArray[np.float64] = data[:, 0].astype(np.float64)
-    print(audio_data.shape)
+    # Extracting the first channel (assuming both channels are the same).
+    normalized_audio_data: npt.NDArray[np.float64] = convert_audio_to_normalized_float64(data)[:, 0]
+    normalized_audio_data = normalized_audio_data
     
-    above_threshold_audio_data: npt.NDArray = audio_data.copy()
-    above_threshold_audio_data[audio_data < THRESHOLD] = np.nan
+    above_threshold_audio_data: npt.NDArray = normalized_audio_data.copy()
+    above_threshold_audio_data[normalized_audio_data < THRESHOLD] = np.nan
 
     non_nan_region_mask: npt.NDArray[np.bool] = create_non_nan_region_mask(data_with_nan=above_threshold_audio_data, region_length_s=0.1, sample_rate_hz=sr)
 
     blob_boundaries: list[tuple[int, int]] = get_blob_boundaries(non_nan_region_mask=non_nan_region_mask, min_blob_size_s=0.5, sample_rate_hz=sr)
 
     # Uncomment the line below to debug selection using the runs.
-    # plot_selected_data(audio_data, create_selected_audio_data_array(audio_data, blob_boundaries), sr)
+    plot_selected_data(normalized_audio_data, create_selected_audio_data_array(normalized_audio_data, blob_boundaries), sr)
 
-    blob_start, blob_end = blob_boundaries[1]
-    plot_spectrum(audio_data[blob_start:blob_end+1], sr, 250.0)
+    # blob_start, blob_end = blob_boundaries[1]
+    # plot_spectrum(normalized_audio_data[blob_start:blob_end+1], sr, 250.0)
