@@ -97,6 +97,23 @@ def create_selected_audio_data_array(audio_data: npt.NDArray[np.float64], blob_b
     return selected_audio_data
 
 
+def plot_timeseries_data(arrays: tuple[npt.NDArray, ...], sample_rate_hz: float) -> None:
+    figure: plt.Figure = plt.figure(figsize=(30, 10))
+    figure.suptitle("Gamelan Frequency Analysis")
+
+    t: npt.NDArray[np.float64] = np.linspace(0, arrays[0].shape[0] / sample_rate_hz, arrays[0].shape[0])
+
+    for array in arrays:
+        plt.plot(t, array)
+    
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude")
+    plt.title("Audio Waveform")
+
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_selected_data(audio_data: npt.NDArray[np.float64], selected_audio_data: npt.NDArray[np.float64], sample_rate_hz: float) -> None:
     t = np.linspace(0, audio_data.shape[0] / sample_rate_hz, audio_data.shape[0])
 
@@ -112,7 +129,7 @@ def plot_selected_data(audio_data: npt.NDArray[np.float64], selected_audio_data:
 
 
 def plot_spectrum(blob_data: npt.NDArray[np.float64], sample_rate_hz: float, freq_cutoff_hz: float) -> None:
-    freqs, spectrum = dsp.fft(blob_data, sample_rate_hz)
+    freqs, spectrum = dsp.fft_float64(blob_data, sample_rate_hz)
     
     freqs = freqs[freqs < freq_cutoff_hz]
     spectrum = spectrum[:len(freqs)]
@@ -168,7 +185,9 @@ if __name__ == "__main__":
     # Extracting the first channel (assuming both channels are the same).
     normalized_audio_data: npt.NDArray[np.float64] = convert_audio_to_normalized_float64(data)[:, 0]
     normalized_audio_data = normalized_audio_data
-    
+
+    audio_data_rms: npt.NDArray[np.float64] = dsp.rms_float64(normalized_audio_data, 0.01, 0.005, sr, pad_value=0.0)
+
     above_threshold_audio_data: npt.NDArray = normalized_audio_data.copy()
     above_threshold_audio_data[normalized_audio_data < THRESHOLD] = np.nan
 
@@ -177,7 +196,8 @@ if __name__ == "__main__":
     blob_boundaries: list[tuple[int, int]] = get_blob_boundaries(non_nan_region_mask=non_nan_region_mask, min_blob_size_s=0.5, sample_rate_hz=sr)
 
     # Uncomment the line below to debug selection using the runs.
-    plot_selected_data(normalized_audio_data, create_selected_audio_data_array(normalized_audio_data, blob_boundaries), sr)
+    # plot_selected_data(normalized_audio_data, create_selected_audio_data_array(normalized_audio_data, blob_boundaries), sr)
+    plot_timeseries_data((normalized_audio_data, create_selected_audio_data_array(normalized_audio_data, blob_boundaries), audio_data_rms), sr)
 
     # blob_start, blob_end = blob_boundaries[1]
     # plot_spectrum(normalized_audio_data[blob_start:blob_end+1], sr, 250.0)
