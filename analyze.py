@@ -186,7 +186,7 @@ if __name__ == "__main__":
     normalized_audio_data: npt.NDArray[np.float64] = convert_audio_to_normalized_float64(data)[:, 0]
     normalized_audio_data = normalized_audio_data
 
-    audio_data_rms: npt.NDArray[np.float64] = dsp.rms_float64(normalized_audio_data, 0.01, 0.005, sr, pad_value=0.0)
+    padded_normalized_audio_data, normalized_audio_data_rms = dsp.rms_float64(normalized_audio_data, 0.01, 0.005, sr, pad_value=0.0)
 
     above_threshold_audio_data: npt.NDArray = normalized_audio_data.copy()
     above_threshold_audio_data[normalized_audio_data < THRESHOLD] = np.nan
@@ -197,7 +197,7 @@ if __name__ == "__main__":
 
     # Uncomment the line below to debug selection using the runs.
     # plot_selected_data(normalized_audio_data, create_selected_audio_data_array(normalized_audio_data, blob_boundaries), sr)
-    plot_timeseries_data((normalized_audio_data, create_selected_audio_data_array(normalized_audio_data, blob_boundaries), audio_data_rms), sr)
+    plot_timeseries_data((padded_normalized_audio_data, create_selected_audio_data_array(padded_normalized_audio_data, blob_boundaries), normalized_audio_data_rms), sr)
 
     # blob_start, blob_end = blob_boundaries[1]
     # plot_spectrum(normalized_audio_data[blob_start:blob_end+1], sr, 250.0)
