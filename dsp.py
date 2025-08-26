@@ -3,6 +3,8 @@ import math
 import numpy as np
 import numpy.typing as npt
 
+from typing import Literal
+
 
 def fft_float64(signal: npt.NDArray[np.float64], sample_frequency_hz: float) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.complex128]]:
     """
@@ -29,9 +31,30 @@ def ifft_complex128(spectrum: npt.NDArray[np.complex128]) -> npt.NDArray[np.floa
     return np.fft.irfft(spectrum, norm="forward")
 
 
-def _pad_frames_float64(signal: npt.NDArray[np.float64], frame_length_samples: int, hop_length_samples: int, pad_value: np.float64) -> npt.NDArray[np.float64]:
+def _is_signal_padded_float64(signal: npt.NDArray[np.float64], frame_length_samples: int, hop_length_samples: int) -> bool:
     """
-    Pad the last frame of the input signal so the output signal may be cleanly viewed as frames of a given length with starting samples separated by the hop length.
+    Check whether the input signal is padded such that it can be cleanly viewed as overlapping frames spaced every hop_length_samples samples.
+
+    :param signal: The input signal to check.
+    :param frame_length_samples: The length of each frame in the input signal, in samples.
+    :param hop_length_samples: The distance between the start of each frame, in samples.
+    For example, if the hop length is 100 samples, and the first frame starts at signal[0], the next frame will start at signal[100].
+
+    :return: True if the input signal is properly padded and False otherwise.
+    """
+    if len(signal) < frame_length_samples:
+        return False
+    
+    elif len(signal) == frame_length_samples:
+        return True
+    
+    else:
+        return (len(signal) - frame_length_samples) % hop_length_samples == 0
+
+
+def pad_frames_float64(signal: npt.NDArray[np.float64], frame_length_samples: int, hop_length_samples: int, pad_value: np.float64) -> npt.NDArray[np.float64]:
+    """
+    Pad the last frame of the input signal so the output signal may be cleanly viewed as overlapping frames spaced every hop_length_samples samples.
 
     :param signal: The input signal to pad.
     :param frame_length_samples: The length of each frame in the input signal, in samples.
@@ -73,7 +96,8 @@ def _rms_frames_to_rms_signal(rms_frames: npt.NDArray[np.float64], frame_length_
     :param rms_frames: The RMS frames signal. rms_frames[i] is the rms for frame i.
     :param frame_length_samples: The number of samples used to compute the RMS for each frame.
     :param hop_length_samples: The spacing of frames from the original signal the RMS was computed from.
-
+    For example, if the hop length is 100 samples, and the first frame starts at signal[0], the next frame will start at signal[100].
+    
     :return: The smeared RMS signal, in the same shape as the original signal the RMS was computed from.
     """
     sparse_rms_unpadded: npt.NDArray[np.float64] = np.zeros(len(rms_frames) * hop_length_samples)
@@ -91,27 +115,37 @@ def _rms_frames_to_rms_signal(rms_frames: npt.NDArray[np.float64], frame_length_
 
     return convolved_rms / convolved_counts
 
-def rms_float64(signal: npt.NDArray[np.float64], frame_length_s: float, hop_length_s: float, sample_rate_hz: float, pad_value: np.float64 = 0.0) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+
+def rms_float64(signal: npt.NDArray[np.float64], frame_length_samples: int, hop_length_samples: int, mode: Literal["average", "last"] = "average") -> npt.NDArray[np.float64]:
     """
     Computes the RMS energy from an input signal.
 
-    :param signal: The input signal to compute the RMS over.
-    :param frame_length_s: The length of each frame of the input signal, in seconds, over which to compute the RMS over.
-    :param hop_length_s: The distance between the starting point of each frame, in seconds.
-    :param sample_rate_hz: The sampling rate, in Hz.
-    :param pad_value: The value with which to pad the input signal, in the case where the last frame is smaller than the provided frame length.
-    Defaults to 0.
+    :param signal: The input signal to compute the RMS over. This input signal should first be padded using dsp.pad_frames_float64.
+    If the input signal is not padded properly, it will be padded with 0 values accordingly.
+    :param frame_length_samples: The length of each frame of the input signal, in samples, over which to compute the RMS over.
+    :param hop_length_samples: The distance between the starting point of each frame, in samples.
+    For example, if the hop length is 100 samples, and the first frame starts at signal[0], the next frame will start at signal[100].
+    :param mode: Controls how the RMS is represented in the output signal.
+    - "average": Each sample in the output signal is assigned the average (mean) RMS value of all frames that contain it.
+    - "last": Each sample in the output signal is assigned the RMS value of the last, i.e.: frame with the largest starting index, that contains it.
+    
+    :return: The RMS signal, in the same shape as the (padded) input.
+    """
+    if mode not in {"average", "last"}:
+        raise ValueError(f"Invalid mode: {mode}")
 
-    :return: A tuple of the form (padded_input_signal, rms)
-    """ 
-    frame_length_samples: int = math.floor(frame_length_s * sample_rate_hz)
-    hop_length_samples: int = math.floor(hop_length_s * sample_rate_hz)
+    padded_signal: npt.NDArray[np.float64] = signal
 
-    padded_signal: npt.NDArray[np.float64] = _pad_frames_float64(signal, frame_length_samples, hop_length_samples, pad_value)
+    if not _is_signal_padded_float64(signal, frame_length_samples, hop_length_samples):
+        padded_signal = pad_frames_float64(signal, frame_length_samples, hop_length_samples, 0.0)
 
     padded_signal_windows: npt.NDArray[np.float64] = np.lib.stride_tricks.sliding_window_view(padded_signal, window_shape=frame_length_samples, writeable=False)
     padded_signal_frames: npt.NDArray[np.float64] = padded_signal_windows[::hop_length_samples]
 
     padded_signal_frames_rms: npt.NDArray[np.float64] = np.sqrt(np.mean(padded_signal_frames**2, axis=1))
 
-    return padded_signal, _rms_frames_to_rms_signal(padded_signal_frames_rms, frame_length_samples, hop_length_samples)
+    if mode == "average":
+        return _rms_frames_to_rms_signal(padded_signal_frames_rms, frame_length_samples, hop_length_samples)
+    
+    else:
+        return np.pad(np.repeat(padded_signal_frames_rms, hop_length_samples), (0, frame_length_samples - hop_length_samples), constant_values=padded_signal_frames_rms[-1])
