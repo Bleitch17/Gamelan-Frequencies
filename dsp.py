@@ -228,3 +228,24 @@ def rms_float64(signal: npt.NDArray[np.float64], frame_length_samples: int, hop_
     
     else:
         return np.pad(np.repeat(padded_signal_frames_rms, hop_length_samples), (0, frame_length_samples - hop_length_samples), constant_values=padded_signal_frames_rms[-1])
+
+
+def rms_to_db_float64(rms_signal: npt.NDArray[np.float64], epsilon: np.float64 = 1e-12) -> npt.NDArray[np.float64]:
+    """
+    Convert an input RMS signal into decibels (db).
+
+    Parameters
+    ----------
+    rms_signal:
+        The input RMS signal to convert.
+    
+    epsilon:
+        A small constant to ensure values close to 0 in the input do not blow up to negative infinity in the output.
+        Defaults to 1e-12.
+
+    Returns
+    -------
+    out:
+        The input signal converted to db. 
+    """
+    return 20 * np.log10(np.maximum(rms_signal, epsilon))

@@ -177,7 +177,7 @@ def convert_audio_to_normalized_float64(audio_data: npt.NDArray) -> npt.NDArray[
 
 
 if __name__ == "__main__":
-    sample_rate_hz, data = wavfile.read("wav/A.wav")
+    sample_rate_hz, data = wavfile.read("wav/C.wav")
     print(f"Sample rate: {sample_rate_hz}Hz")
     print(f"Audio data shape: {data.shape}")
     print(f"Raw audio data type: {data.dtype}")
@@ -191,18 +191,22 @@ if __name__ == "__main__":
 
     padded_normalized_audio_data: npt.NDArray[np.float64] = dsp.pad_to_frame_view_float64(normalized_audio_data, frame_length_samples, hop_length_samples, pad_value=0.0)
 
-    audio_data_rms = dsp.rms_float64(padded_normalized_audio_data, frame_length_samples, hop_length_samples, mode="last")
+    audio_data_rms: npt.NDArray[np.float64] = dsp.rms_float64(padded_normalized_audio_data, frame_length_samples, hop_length_samples, mode="average")
 
-    above_threshold_audio_data: npt.NDArray = normalized_audio_data.copy()
-    above_threshold_audio_data[normalized_audio_data < THRESHOLD] = np.nan
+    # audio_data_db: npt.NDArray[np.float64] = dsp.rms_to_db_float64(audio_data_rms, epsilon=1e-6)
 
-    non_nan_region_mask: npt.NDArray[np.bool] = create_non_nan_region_mask(data_with_nan=above_threshold_audio_data, region_length_s=0.1, sample_rate_hz=sample_rate_hz)
+    # above_threshold_audio_data: npt.NDArray = normalized_audio_data.copy()
+    # above_threshold_audio_data[normalized_audio_data < THRESHOLD] = np.nan
 
-    blob_boundaries: list[tuple[int, int]] = get_blob_boundaries(non_nan_region_mask=non_nan_region_mask, min_blob_size_s=0.5, sample_rate_hz=sample_rate_hz)
+    # non_nan_region_mask: npt.NDArray[np.bool] = create_non_nan_region_mask(data_with_nan=above_threshold_audio_data, region_length_s=0.1, sample_rate_hz=sample_rate_hz)
+
+    # blob_boundaries: list[tuple[int, int]] = get_blob_boundaries(non_nan_region_mask=non_nan_region_mask, min_blob_size_s=0.5, sample_rate_hz=sample_rate_hz)
 
     # Uncomment the line below to debug selection using the runs.
     # plot_selected_data(normalized_audio_data, create_selected_audio_data_array(normalized_audio_data, blob_boundaries), sr)
-    plot_timeseries_data((padded_normalized_audio_data, create_selected_audio_data_array(padded_normalized_audio_data, blob_boundaries), audio_data_rms), sample_rate_hz)
+    # plot_timeseries_data((padded_normalized_audio_data, create_selected_audio_data_array(padded_normalized_audio_data, blob_boundaries), audio_data_rms), sample_rate_hz)
+    # plot_timeseries_data((padded_normalized_audio_data, audio_data_rms, audio_data_db), sample_rate_hz)
+    plot_timeseries_data((padded_normalized_audio_data, audio_data_rms), sample_rate_hz)
 
     # blob_start, blob_end = blob_boundaries[1]
     # plot_spectrum(normalized_audio_data[blob_start:blob_end+1], sr, 250.0)
