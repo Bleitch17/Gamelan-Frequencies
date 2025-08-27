@@ -189,7 +189,7 @@ if __name__ == "__main__":
     frame_length_samples: int = math.floor(0.01 * sample_rate_hz)
     hop_length_samples: int = math.floor(0.005 * sample_rate_hz)
 
-    padded_normalized_audio_data: npt.NDArray[np.float64] = dsp.pad_frames_float64(normalized_audio_data, frame_length_samples, hop_length_samples, pad_value=0.0)
+    padded_normalized_audio_data: npt.NDArray[np.float64] = dsp.pad_to_frame_view_float64(normalized_audio_data, frame_length_samples, hop_length_samples, pad_value=0.0)
 
     audio_data_rms = dsp.rms_float64(padded_normalized_audio_data, frame_length_samples, hop_length_samples, mode="last")
 
