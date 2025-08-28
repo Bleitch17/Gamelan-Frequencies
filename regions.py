@@ -2,7 +2,7 @@ import numpy as np
 import numpy.typing as npt
 
 
-def get_regions_above_threshold(signal: npt.NDArray[np.float64], t: float) -> tuple[list[int], list[int]]:
+def get_regions_above_threshold(signal: npt.NDArray[np.float64], t: float) -> list[tuple[int, int]]:
     """
     Find regions of the input signal where the data is above a specified threshold.
 
@@ -17,14 +17,14 @@ def get_regions_above_threshold(signal: npt.NDArray[np.float64], t: float) -> tu
     Returns
     -------
     regions:
-        A tuple of the form (starts, ends) where starts is a list of start indexes (inclusive) for the regions above the threshold and
-        ends is a list of end indexes (inclusive) for regions above the threshold.
+        A list of tuples of the form (start, end) where start is a start index (inclusive) for a region above the threshold and
+        end is an end index (inclusive) for a region above the threshold. regions[i] is the start and end boundary for region i.
     """
 
     mask: npt.NDArray[np.bool] = (signal > t).astype(np.int32)
 
     if not np.any(mask):
-        return [], []
+        return []
 
     # From the numpy docs:
     # np.diff calculates the n-th discrete difference along the given axis. The first difference is given by:
@@ -49,4 +49,24 @@ def get_regions_above_threshold(signal: npt.NDArray[np.float64], t: float) -> tu
     if mask[-1]:
         ends = ends + [len(signal) - 1]
 
-    return starts, ends
+    return list(zip(starts, ends))
+
+
+def filter_regions_by_size(regions: list[tuple[int, int]], size: int) -> list[tuple[int, int]]:
+    """
+    Filter a list of regions below a given size.
+
+    Parameters
+    ----------
+    regions:
+        A list of region endpoints. The endpoints are represented as tuples of the form (start, end) where start and end are inclusive indexes.
+    
+    size:
+        The minimum size of the regions to return.
+    
+    Returns
+    -------
+    out:
+        A filtered list of region endpoints where all the regions are at least as large as size.
+    """
+    return list(filter(lambda bounds: bounds[-1] - bounds[0] + 1 >= size, regions))
