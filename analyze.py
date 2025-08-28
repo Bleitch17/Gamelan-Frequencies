@@ -1,4 +1,4 @@
-import dsp
+
 import math
 import matplotlib
 import matplotlib.pyplot as plt
@@ -6,6 +6,9 @@ import numpy as np
 import numpy.typing as npt
 
 from scipy.io import wavfile
+
+import dsp
+import threshold
 
 # Need this line on Linux so I can pip install matplotlib locally for Python versions different than the system version.
 matplotlib.use("Qt5Agg")
@@ -97,7 +100,7 @@ def create_selected_audio_data_array(audio_data: npt.NDArray[np.float64], blob_b
     return selected_audio_data
 
 
-def plot_timeseries_data(arrays: tuple[npt.NDArray, ...], sample_rate_hz: float) -> None:
+def plot_timeseries_data(arrays: list[npt.NDArray], h_lines: list[float], sample_rate_hz: float) -> None:
     figure: plt.Figure = plt.figure(figsize=(30, 10))
     figure.suptitle("Gamelan Frequency Analysis")
 
@@ -106,6 +109,9 @@ def plot_timeseries_data(arrays: tuple[npt.NDArray, ...], sample_rate_hz: float)
     for array in arrays:
         plt.plot(t, array)
     
+    for h_line in h_lines:
+        plt.axhline(h_line)
+
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude")
     plt.title("Audio Waveform")
@@ -202,11 +208,14 @@ if __name__ == "__main__":
 
     # blob_boundaries: list[tuple[int, int]] = get_blob_boundaries(non_nan_region_mask=non_nan_region_mask, min_blob_size_s=0.5, sample_rate_hz=sample_rate_hz)
 
+    t: float = threshold.compute_threshold_float64(audio_data_rms, delta=1.01)
+    mask: npt.NDArray[np.bool] = audio_data_rms > t
+
     # Uncomment the line below to debug selection using the runs.
     # plot_selected_data(normalized_audio_data, create_selected_audio_data_array(normalized_audio_data, blob_boundaries), sr)
     # plot_timeseries_data((padded_normalized_audio_data, create_selected_audio_data_array(padded_normalized_audio_data, blob_boundaries), audio_data_rms), sample_rate_hz)
     # plot_timeseries_data((padded_normalized_audio_data, audio_data_rms, audio_data_db), sample_rate_hz)
-    plot_timeseries_data((padded_normalized_audio_data, audio_data_rms), sample_rate_hz)
+    plot_timeseries_data([padded_normalized_audio_data, audio_data_rms], [t], sample_rate_hz)
 
     # blob_start, blob_end = blob_boundaries[1]
     # plot_spectrum(normalized_audio_data[blob_start:blob_end+1], sr, 250.0)
