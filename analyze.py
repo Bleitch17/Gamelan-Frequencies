@@ -8,7 +8,7 @@ import numpy.typing as npt
 from scipy.io import wavfile
 
 import dsp
-import regions
+import blob
 import threshold
 
 # Need this line on Linux so I can pip install matplotlib locally for Python versions different than the system version.
@@ -96,7 +96,7 @@ def convert_audio_to_normalized_float64(audio_data: npt.NDArray) -> npt.NDArray[
 
 
 if __name__ == "__main__":
-    sample_rate_hz, data = wavfile.read("wav/H.wav")
+    sample_rate_hz, data = wavfile.read("wav/A.wav")
     print(f"Sample rate: {sample_rate_hz}Hz")
     print(f"Audio data shape: {data.shape}")
     print(f"Raw audio data type: {data.dtype}")
@@ -114,10 +114,23 @@ if __name__ == "__main__":
 
     t: float = threshold.compute_threshold_float64(audio_data_rms, delta=1.02)
     
-    blob_boundaries: list[tuple[int, int]] = regions.get_regions_above_threshold(audio_data_rms, t)
-    blob_boundaries = regions.filter_regions_by_size(blob_boundaries, 0.5 * sample_rate_hz)
+    min_blob_size: int = int(0.5 * sample_rate_hz)
+    
+    blob_boundaries: list[tuple[int, int]] = blob.get_blob_boundaries_above_threshold(audio_data_rms, t)
+    blob_boundaries = blob.filter_blobs_by_size(blob_boundaries, 0.5 * sample_rate_hz)
 
-    selected_audio_data: npt.NDArray[np.float64] = create_selected_audio_data_array(padded_normalized_audio_data, blob_boundaries)
+    # Uncomment the lines below to debug selection using the runs.
+    # selected_audio_data: npt.NDArray[np.float64] = create_selected_audio_data_array(padded_normalized_audio_data, blob_boundaries)
+    # plot_timeseries_data([padded_normalized_audio_data, audio_data_rms, selected_audio_data], [t], sample_rate_hz)
 
-    # Uncomment the line below to debug selection using the runs.
-    plot_timeseries_data([padded_normalized_audio_data, audio_data_rms, selected_audio_data], [t], sample_rate_hz)
+    blobs: list[npt.NDArray[np.float64]] = blob.get_blobs(padded_normalized_audio_data, blob_boundaries)
+
+    stft_frame_length_samples: int = int(0.25 * sample_rate_hz)
+    stft_hop_length_samples: int = int(stft_frame_length_samples // 2)
+
+    stft_freqs, stft_spectrum = dsp.stft_float64(blobs[0], sample_rate_hz, stft_frame_length_samples, stft_hop_length_samples)
+
+    max_freq_indices: npt.NDArray[np.int32] = np.abs(stft_spectrum).argmax(axis=1)
+    max_freqs: npt.NDArray[np.float64] = stft_freqs[max_freq_indices]
+
+    plot_timeseries_data([max_freqs], [], sample_rate_hz)

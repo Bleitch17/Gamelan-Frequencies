@@ -219,6 +219,8 @@ def rms_float64(signal: npt.NDArray[np.float64], frame_length_samples: int, hop_
         padded_signal = pad_to_frame_view_float64(signal, frame_length_samples, hop_length_samples, 0.0)
 
     padded_signal_windows: npt.NDArray[np.float64] = np.lib.stride_tricks.sliding_window_view(padded_signal, window_shape=frame_length_samples, writeable=False)
+    
+    # Can consider this a "frame matrix"
     padded_signal_frames: npt.NDArray[np.float64] = padded_signal_windows[::hop_length_samples]
 
     padded_signal_frames_rms: npt.NDArray[np.float64] = np.sqrt(np.mean(padded_signal_frames**2, axis=1))
@@ -249,3 +251,47 @@ def rms_to_db_float64(rms_signal: npt.NDArray[np.float64], epsilon: np.float64 =
         The input signal converted to db. 
     """
     return 20 * np.log10(np.maximum(rms_signal, epsilon))
+
+
+def stft_float64(signal: npt.NDArray[np.float64], sample_rate_hz: float, frame_length_samples: int, hop_length_samples: int) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.complex128]]:
+    """
+    Take the Short Time Fourier Transform (STFT) of the input signal. Note that the input signal will be automatically padded to the desired frame view
+    based on the frame length and hop length parameters.
+
+    Parameters
+    ----------
+    signal:
+        The signal to take the STFT of.
+    
+    sample_rate_hz:
+        The sampling rate used to create the input signal.
+    
+    frame_length_samples:
+        The length of each frame, in samples, in the framed view of the input signal.
+    
+    hop_length_samples:
+        The distance between each frame, in samples, in the framed view of the input signal.
+        For example, if the hop length is 100 samples, the first frame is assumed to start at signal[0],
+        the second frame is assumed to start at signal[100], the third frame is assumed to start at
+        signal[200], etc.
+    
+    Returns
+    -------
+    freqs, spectrum:
+        A tuple containing the frequency buckets of the STFT and a 2D array of shape (num_frames, len(freqs)) where each row, i, is the FFT output spectrum for frame i.
+    """
+
+    padded_signal: npt.NDArray[np.float64] = signal
+
+    if not is_signal_frame_view_float64(signal, frame_length_samples, hop_length_samples):
+        padded_signal = pad_to_frame_view_float64(padded_signal, frame_length_samples, hop_length_samples)
+    
+    padded_signal_windows: npt.NDArray[np.float64] = np.lib.stride_tricks.sliding_window_view(padded_signal, window_shape=frame_length_samples, writeable=False)
+    
+    # Can consider this a "frames matrix"
+    padded_signal_frames: npt.NDArray[np.float64] = padded_signal_windows[::hop_length_samples]
+
+    spectrum: npt.NDArray[np.complex128] = np.fft.rfft(padded_signal_frames, axis=1, norm="forward")
+    freqs: npt.NDArray[np.float64] = np.fft.rfftfreq(len(padded_signal_frames[0]), 1 / sample_rate_hz)
+
+    return freqs, spectrum

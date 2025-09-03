@@ -2,9 +2,9 @@ import numpy as np
 import numpy.typing as npt
 
 
-def get_regions_above_threshold(signal: npt.NDArray[np.float64], t: float) -> list[tuple[int, int]]:
+def get_blob_boundaries_above_threshold(signal: npt.NDArray[np.float64], t: float) -> list[tuple[int, int]]:
     """
-    Find regions of the input signal where the data is above a specified threshold.
+    Find blobs of the input signal where the data is above a specified threshold.
 
     Parameters
     ----------
@@ -16,9 +16,9 @@ def get_regions_above_threshold(signal: npt.NDArray[np.float64], t: float) -> li
     
     Returns
     -------
-    regions:
+    blob_boundaries:
         A list of tuples of the form (start, end) where start is a start index (inclusive) for a region above the threshold and
-        end is an end index (inclusive) for a region above the threshold. regions[i] is the start and end boundary for region i.
+        end is an end index (inclusive) for a blob above the threshold. blob_boundaries[i] is the start and end boundary for blob i.
     """
 
     mask: npt.NDArray[np.bool] = (signal > t).astype(np.int32)
@@ -52,21 +52,41 @@ def get_regions_above_threshold(signal: npt.NDArray[np.float64], t: float) -> li
     return list(zip(starts, ends))
 
 
-def filter_regions_by_size(regions: list[tuple[int, int]], size: int) -> list[tuple[int, int]]:
+def filter_blobs_by_size(blob_boundaries: list[tuple[int, int]], size: int) -> list[tuple[int, int]]:
     """
-    Filter a list of regions below a given size.
+    Filter a list of blobs below a given size.
 
     Parameters
     ----------
-    regions:
-        A list of region endpoints. The endpoints are represented as tuples of the form (start, end) where start and end are inclusive indexes.
+    blob_boundaries:
+        A list of blob endpoints. The endpoints are represented as tuples of the form (start, end) where start and end are inclusive indexes.
     
     size:
-        The minimum size of the regions to return.
+        The minimum size of the blobs to return.
     
     Returns
     -------
     out:
-        A filtered list of region endpoints where all the regions are at least as large as size.
+        A filtered list of blob endpoints where all the blobs are at least as large as size.
     """
-    return list(filter(lambda bounds: bounds[-1] - bounds[0] + 1 >= size, regions))
+    return list(filter(lambda bounds: bounds[-1] - bounds[0] + 1 >= size, blob_boundaries))
+
+
+def get_blobs(signal: npt.NDArray[np.float64], blob_boundaries: list[tuple[int, int]]) -> list[npt.NDArray[np.float64]]:
+    """
+    Produce a list of blobs given an input signal and a list of blob boundaries.
+
+    Parameters
+    ----------
+    signal:
+        The input signal to take blobs from.
+
+    blob_boundaries:
+        A list of blob endpoints. The endpoints are represented as tuples of the form (start, end) where start and end are inclusive indexes.
+    
+    Returns
+    -------
+    out:
+        A list of blobs taken from the input signal.
+    """
+    return [signal[start:end+1] for start, end in blob_boundaries]
