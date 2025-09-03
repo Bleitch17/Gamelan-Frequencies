@@ -125,12 +125,19 @@ if __name__ == "__main__":
 
     blobs: list[npt.NDArray[np.float64]] = blob.get_blobs(padded_normalized_audio_data, blob_boundaries)
 
-    stft_frame_length_samples: int = int(0.25 * sample_rate_hz)
-    stft_hop_length_samples: int = int(stft_frame_length_samples // 2)
+    freqs, spectrum = dsp.fft_float64(blobs[0][:len(blobs[0])//2], sample_rate_hz)
+    print(freqs[np.abs(spectrum).argmax()])
 
-    stft_freqs, stft_spectrum = dsp.stft_float64(blobs[0], sample_rate_hz, stft_frame_length_samples, stft_hop_length_samples)
+    freqs, spectrum = dsp.fft_float64(blobs[0][len(blobs[0])//2:], sample_rate_hz)
+    print(freqs[np.abs(spectrum).argmax()])
 
-    max_freq_indices: npt.NDArray[np.int32] = np.abs(stft_spectrum).argmax(axis=1)
-    max_freqs: npt.NDArray[np.float64] = stft_freqs[max_freq_indices]
+    # stft_frame_length_samples: int = int(2 * sample_rate_hz)
+    # stft_hop_length_samples: int = int(stft_frame_length_samples // 2)
 
-    plot_timeseries_data([max_freqs], [], sample_rate_hz)
+    # stft_freqs, stft_spectrum = dsp.stft_float64(blobs[0], sample_rate_hz, stft_frame_length_samples, stft_hop_length_samples)
+
+    # max_freq_indices: npt.NDArray[np.int32] = np.abs(stft_spectrum).argmax(axis=1)
+    # max_freqs: npt.NDArray[np.float64] = stft_freqs[max_freq_indices]
+    # print(max_freqs)
+
+    # plot_timeseries_data([max_freqs], [], sample_rate_hz)
