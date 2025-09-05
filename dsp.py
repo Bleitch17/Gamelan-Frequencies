@@ -51,6 +51,49 @@ def ifft_complex128(spectrum: npt.NDArray[np.complex128]) -> npt.NDArray[np.floa
     return np.fft.irfft(spectrum, norm="forward")
 
 
+def dominant_freq_float64(signal: npt.NDArray[np.float64], sample_rate_hz: float) -> float:
+    """
+    Estimate the dominant frequency of a real-valued signal by:
+    1. Applying a Hann Window.
+    2. Taking the magnitude of the FFT spectrum of the signal.
+    3. Using quadratic (parabolic) interpolation around the peak bin.
+
+    Parameters
+    ----------
+    signal:
+        The input signal.
+    
+    sample_rate_hz:
+        The sampling rate used to create the input signal, in Hz.
+
+    Returns
+    -------
+    out:
+        An estimate of the dominant frequency in the input signal.
+    """
+    signal_length_samples: int = len(signal)
+
+    signal_with_window: npt.NDArray[np.float64] = signal * np.hanning(signal_length_samples)
+
+    freqs, spectrum = fft_float64(signal_with_window, sample_rate_hz)
+    magnitude: npt.NDArray[np.float64] = np.abs(spectrum)
+
+    dominant_freq_index: int = np.argmax(magnitude)
+
+    # Parabolic interpolation code from ChatGPT:
+    if 1 <= dominant_freq_index <= len(magnitude) - 2:
+        alpha: float = np.log(magnitude[dominant_freq_index - 1])
+        beta: float = np.log(magnitude[dominant_freq_index])
+        gamma: float = np.log(magnitude[dominant_freq_index + 1])
+
+        p: float = 0.5 * (alpha - gamma) / (alpha - 2 * beta + gamma)
+
+    else:
+        p: float = 0.0
+    
+    return freqs[dominant_freq_index] + p * (freqs[1] - freqs[0])
+
+
 def is_signal_frame_view_float64(signal: npt.NDArray[np.float64], frame_length_samples: int, hop_length_samples: int) -> bool:
     """
     Check whether the input signal can be cleanly viewed as overlapping frames of a given length, spaced a given hop distance apart.

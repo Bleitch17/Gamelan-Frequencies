@@ -95,6 +95,45 @@ def convert_audio_to_normalized_float64(audio_data: npt.NDArray) -> npt.NDArray[
         return audio_data.astype(np.float64)
 
 
+def test_plot() -> None:
+    x = np.linspace(0, 2*np.pi, 50)
+
+    fig, ax = plt.subplots()
+
+    line1, = ax.plot(x, np.sin(x), linestyle='-', color='C0', label='sin')
+    line2, = ax.plot(x, np.cos(x), linestyle='--', color='C1', label='cos')
+
+    theta = np.linspace(0, 2*np.pi, 40)
+    circle_x = np.cos(theta)
+    circle_y = np.sin(theta)
+
+    line3, = ax.plot(circle_x, circle_y, linestyle='-', color='C2', label='circle')
+
+    # Add new points to one of the lines (extend data)
+    new_x = np.linspace(2*np.pi, 3*np.pi, 20)
+    new_y = np.sin(new_x)
+
+    # Concatenate old and new points
+    xdata = np.concatenate([line1.get_xdata(), new_x])
+    ydata = np.concatenate([line1.get_ydata(), new_y])
+
+    # Update the line’s data
+    line1.set_data(xdata, ydata)
+
+    # Rescale axes to fit the updated data
+    ax.relim()
+    ax.autoscale_view()
+
+    # Decorate
+    ax.set_aspect('equal', adjustable='datalim')
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.legend()
+    ax.grid(True)
+
+    plt.show()
+
+
 if __name__ == "__main__":
     sample_rate_hz, data = wavfile.read("wav/A.wav")
     print(f"Sample rate: {sample_rate_hz}Hz")
@@ -125,11 +164,7 @@ if __name__ == "__main__":
 
     blobs: list[npt.NDArray[np.float64]] = blob.get_blobs(padded_normalized_audio_data, blob_boundaries)
 
-    freqs, spectrum = dsp.fft_float64(blobs[0][:len(blobs[0])//2], sample_rate_hz)
-    print(freqs[np.abs(spectrum).argmax()])
-
-    freqs, spectrum = dsp.fft_float64(blobs[0][len(blobs[0])//2:], sample_rate_hz)
-    print(freqs[np.abs(spectrum).argmax()])
+    test_plot()
 
     # stft_frame_length_samples: int = int(2 * sample_rate_hz)
     # stft_hop_length_samples: int = int(stft_frame_length_samples // 2)
