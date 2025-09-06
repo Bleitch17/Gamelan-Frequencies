@@ -135,7 +135,9 @@ def test_plot() -> None:
 
 
 if __name__ == "__main__":
-    sample_rate_hz, data = wavfile.read("wav/B.wav")
+    file_name: str = "wav/K.wav"
+    
+    sample_rate_hz, data = wavfile.read(file_name)
     print(f"Sample rate: {sample_rate_hz}Hz")
     print(f"Audio data shape: {data.shape}")
     print(f"Raw audio data type: {data.dtype}")
@@ -159,12 +161,14 @@ if __name__ == "__main__":
     blob_boundaries = blob.filter_blobs_by_size(blob_boundaries, 0.5 * sample_rate_hz)
 
     # Uncomment the lines below to debug selection using the runs.
-    selected_audio_data: npt.NDArray[np.float64] = create_selected_audio_data_array(padded_normalized_audio_data, blob_boundaries)
-    plot_timeseries_data([padded_normalized_audio_data, audio_data_rms, selected_audio_data], [t], sample_rate_hz)
+    # selected_audio_data: npt.NDArray[np.float64] = create_selected_audio_data_array(padded_normalized_audio_data, blob_boundaries)
+    # plot_timeseries_data([padded_normalized_audio_data, audio_data_rms, selected_audio_data], [t], sample_rate_hz)
 
-    # blobs: list[npt.NDArray[np.float64]] = blob.get_blobs(padded_normalized_audio_data, blob_boundaries)
+    blobs: list[npt.NDArray[np.float64]] = blob.get_blobs(padded_normalized_audio_data, blob_boundaries)
 
-    
+    blob_frequencies: list[float] = list(map(lambda blob: float(dsp.dominant_freq_float64(blob, sample_rate_hz)), blobs))
+
+    print(f"{file_name}: {blob_frequencies}")
 
     # stft_frame_length_samples: int = int(2 * sample_rate_hz)
     # stft_hop_length_samples: int = int(stft_frame_length_samples // 2)
