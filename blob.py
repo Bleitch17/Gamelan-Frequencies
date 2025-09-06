@@ -52,24 +52,24 @@ def get_blob_boundaries_above_threshold(signal: npt.NDArray[np.float64], t: floa
     return list(zip(starts, ends))
 
 
-def filter_blobs_by_size(blob_boundaries: list[tuple[int, int]], size: int) -> list[tuple[int, int]]:
+def filter_blobs_by_size(blob_boundaries: list[tuple[int, int]], min_blob_size: int) -> list[tuple[int, int]]:
     """
-    Filter a list of blobs below a given size.
+    Filter a list of blob boundaries, such that the resulting blob boundaries represent blobs at least as large as the given size.
 
     Parameters
     ----------
     blob_boundaries:
         A list of blob endpoints. The endpoints are represented as tuples of the form (start, end) where start and end are inclusive indexes.
     
-    size:
+    min_blob_size:
         The minimum size of the blobs to return.
     
     Returns
     -------
     out:
-        A filtered list of blob endpoints where all the blobs are at least as large as size.
+        A filtered list of blob endpoints where all the blobs are at least as large as min_blob_size.
     """
-    return list(filter(lambda bounds: bounds[-1] - bounds[0] + 1 >= size, blob_boundaries))
+    return list(filter(lambda bounds: bounds[-1] - bounds[0] + 1 >= min_blob_size, blob_boundaries))
 
 
 def get_blobs(signal: npt.NDArray[np.float64], blob_boundaries: list[tuple[int, int]]) -> list[npt.NDArray[np.float64]]:
