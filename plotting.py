@@ -82,7 +82,7 @@ def plot_spectrum_float64(signal: npt.NDArray[np.float64], sample_rate_hz: float
     plt.show()
 
 
-def plot_test() -> None:
+def plot_test_lines() -> None:
     """
     Testing some capabilities of matplotlib.
     """
@@ -120,5 +120,23 @@ def plot_test() -> None:
     ax.set_ylabel("y")
     ax.legend()
     ax.grid(True)
+
+    plt.show()
+
+
+def plot_test_numerals() -> None:
+    x = np.arange(5)
+    y = np.arange(5)
+
+    plt.plot(x, y, marker="o")
+
+    yticks = np.arange(5)
+    ylabels = ["I", "II", "III", "IV", "V"]
+
+    plt.yticks(yticks, ylabels)
+
+    # Optional: limit y-axis to only that range
+    plt.ylim(-0.5, 4.5)
+    plt.grid(True)
 
     plt.show()

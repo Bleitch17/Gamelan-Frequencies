@@ -73,4 +73,6 @@ def read_metallophone_frequencies(wav_file_path: str, is_strike_selection_plot_e
 
 if __name__ == "__main__":
     wav_file_path: str = "wav/A.wav"
-    print(read_metallophone_frequencies(wav_file_path, True))
+    # print(read_metallophone_frequencies(wav_file_path, True))
+
+    plotting.plot_test_numerals()
