@@ -1,7 +1,5 @@
 
 import math
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 
@@ -10,10 +8,9 @@ from scipy.io import wavfile
 import audio
 import blob
 import dsp
+import plotting
 import threshold
 
-# Need this line on Linux so I can pip install matplotlib locally for Python versions different than the system version.
-matplotlib.use("Qt5Agg")
 
 # A ratio at which to stop decreasing the threshold on an RMS signal.
 # Passed in as the "delta" argument to threshold.compute_threshold_float64(...) for metallophone Gamelans.
@@ -21,46 +18,6 @@ METALLOPHONE_RMS_THRESHOLD_RATIO_LIMIT: float = 1.02
 
 # The minimum length of a key strike for the metallophone Gamelan instruments, in seconds.
 METALLOPHONE_MIN_KEY_STRIKE_LENGTH_SECONDS: float = 0.5
-
-
-def plot_timeseries_data(arrays: list[npt.NDArray], h_lines: list[float], sample_rate_hz: float) -> None:
-    figure: plt.Figure = plt.figure(figsize=(30, 10))
-    figure.suptitle("Gamelan Frequency Analysis")
-
-    t: npt.NDArray[np.float64] = np.linspace(0, arrays[0].shape[0] / sample_rate_hz, arrays[0].shape[0])
-
-    for array in arrays:
-        plt.plot(t, array)
-    
-    for h_line in h_lines:
-        plt.axhline(h_line)
-
-    plt.xlabel("Time (s)")
-    plt.ylabel("Amplitude")
-    plt.title("Audio Waveform")
-
-    plt.tight_layout()
-    plt.show()
-
-
-def plot_spectrum(blob_data: npt.NDArray[np.float64], sample_rate_hz: float, freq_cutoff_hz: float) -> None:
-    freqs, spectrum = dsp.fft_float64(blob_data, sample_rate_hz)
-    
-    freqs = freqs[freqs < freq_cutoff_hz]
-    spectrum = spectrum[:len(freqs)]
-
-    magnitude: npt.NDArray[np.float128] = np.abs(spectrum)
-
-    print(freqs[np.argmax(magnitude)])
-
-    plt.figure(figsize=(24, 12))
-    plt.plot(freqs, magnitude)
-    plt.title("Frequency Spectrum")
-    plt.xlabel("Frequency (Hz)")
-    plt.ylabel("Magnitude")
-    plt.grid(True)
-
-    plt.show()
 
 
 def read_metallophone_frequencies(wav_file_path: str, is_strike_selection_plot_enabled: bool = False) -> list[float]:
@@ -107,50 +64,11 @@ def read_metallophone_frequencies(wav_file_path: str, is_strike_selection_plot_e
         # Unselected data is represented by np.nan in this array.
         selected_key_strikes: npt.NDArray[np.float64] = audio.replace_outside_boundaries_float64(padded_normalized_audio_data, blob_boundaries, value=np.nan)
 
-        plot_timeseries_data([padded_normalized_audio_data, selected_key_strikes, audio_data_rms], [rms_threshold], sample_rate_hz)
+        plotting.plot_signals_float64([padded_normalized_audio_data, selected_key_strikes, audio_data_rms], [rms_threshold], sample_rate_hz)
 
     blobs: list[npt.NDArray[np.float64]] = blob.get_blobs(padded_normalized_audio_data, blob_boundaries)
     
     return list(map(lambda blob: float(dsp.dominant_freq_float64(blob, sample_rate_hz)), blobs))
-
-
-def test_plot() -> None:
-    x = np.linspace(0, 2*np.pi, 50)
-
-    fig, ax = plt.subplots()
-
-    line1, = ax.plot(x, np.sin(x), linestyle='-', color='C0', label='sin')
-    line2, = ax.plot(x, np.cos(x), linestyle='--', color='C1', label='cos')
-
-    theta = np.linspace(0, 2*np.pi, 40)
-    circle_x = np.cos(theta)
-    circle_y = np.sin(theta)
-
-    line3, = ax.plot(circle_x, circle_y, linestyle='-', color='C2', label='circle')
-
-    # Add new points to one of the lines (extend data)
-    new_x = np.linspace(2*np.pi, 3*np.pi, 20)
-    new_y = np.sin(new_x)
-
-    # Concatenate old and new points
-    xdata = np.concatenate([line1.get_xdata(), new_x])
-    ydata = np.concatenate([line1.get_ydata(), new_y])
-
-    # Update the line’s data
-    line1.set_data(xdata, ydata)
-
-    # Rescale axes to fit the updated data
-    ax.relim()
-    ax.autoscale_view()
-
-    # Decorate
-    ax.set_aspect('equal', adjustable='datalim')
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.legend()
-    ax.grid(True)
-
-    plt.show()
 
 
 if __name__ == "__main__":
