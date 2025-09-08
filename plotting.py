@@ -27,7 +27,7 @@ def plot_signals_float64(signals: list[npt.NDArray[np.float64]], sample_rate_hz:
         A list of y values to plot, each as a flat horizontal line.
     """
     figure: plt.Figure = plt.figure(figsize=(30, 10))
-    figure.suptitle(f"Signals, Sample Rate = {sample_rate_hz:.1f}")
+    figure.suptitle(f"Signals, Sample Rate = {sample_rate_hz:.1f}Hz")
 
     time_marks: npt.NDArray[np.float64] = np.linspace(0, signals[0].shape[0] / sample_rate_hz, signals[0].shape[0])
 
