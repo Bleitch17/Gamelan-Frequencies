@@ -39,19 +39,15 @@ class GamelanMetallophoneLabel:
     is_upper: bool
     is_lower: bool
 
-    def __init__(self, name: str, is_upper: bool, is_lower: bool):
-        if not name:
+    def __post_init__(self):
+        if not self.name:
             raise ValueError(f"{type(self).__name__}: Expected non-empty name.")
         
-        if ' ' in name:
-            raise ValueError(f"{type(self).__name__}: A valid name should not include whitespace, instead got: {name!r}")
+        if ' ' in self.name:
+            raise ValueError(f"{type(self).__name__}: A valid name should not include whitespace, instead got: {self.name!r}")
 
-        if is_upper and is_lower:
+        if self.is_upper and self.is_lower:
             raise ValueError(f"{type(self).__name__}: A Metallophone cannot both be the upper and lower Metallophone of a tuned pair.")
-        
-        self.name = name
-        self.is_upper = is_upper
-        self.is_lower = is_lower
 
     @classmethod
     def from_string(cls, label_string: str) -> "GamelanMetallophoneLabel":
@@ -89,7 +85,6 @@ class GamelanMetallophoneLabel:
             return cls(label_string, False, False)
 
 
-@dataclass(frozen=True)
 class GamelanMetallophone:
     """
     A class to represent the Metallophone instrument used in Gamelan music.

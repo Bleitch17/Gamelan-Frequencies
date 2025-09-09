@@ -34,25 +34,15 @@ class NoteSymbol:
     octave: int
     separator: str = "_"
 
-    def __init__(self, name: str, octave: int, separator: str = "_"):
-        if not name or not separator:
-            raise ValueError(f"{type(self).__name__}: Empty name: {name!r} or empty separator: {separator!r}")
+    def __post_init__(self):
+        if not self.name or not self.separator:
+            raise ValueError(f"{type(self).__name__}: Empty name: {self.name!r} or empty separator: {self.separator!r}")
         
-        if ' ' in name:
-            raise ValueError(f"{type(self).__name__}: A valid name should not have whitespace, instead got: {name!r}")
+        if ' ' in self.name:
+            raise ValueError(f"{type(self).__name__}: A valid name should not have whitespace, instead got: {self.name!r}")
 
-        if separator not in name:
-            raise ValueError(f"{type(self).__name__}: Separator {separator!r} not contained in name: {name!r}")
-
-        if name.count(separator) > 1:
-            raise ValueError(f"{type(self).__name__}: Expected separator {separator!r} to appear at most once in name: {name!r}")
-
-        if octave < 1:
-            raise ValueError(f"{type(self).__name__}: Octave must be at least 1, instead got: {octave!r}")
-        
-        self.name = name
-        self.octave = octave
-        self.separator = separator
+        if self.octave < 1:
+            raise ValueError(f"{type(self).__name__}: Octave must be at least 1, instead got: {self.octave!r}")
 
     def __str__(self) -> str:
         return f"{self.name}{self.separator}{self.octave}"
@@ -91,13 +81,13 @@ class NoteSymbol:
         
         name, octave = note_symbol_segments
 
-        if not octave.isdigit(octave):
+        if not octave.isdigit():
             raise ValueError(f"{cls.__name__}: Expected octave to be digits, instead got {octave!r}")
         
+        octave = int(octave)
+
         if octave < 1:
             raise ValueError(f"{cls.__name__}: Octave must be at least 1, instead got: {octave!r}")
-        
-        octave = int(octave)
         
         return cls(name, octave, separator)
 
@@ -124,12 +114,12 @@ class Note:
         The frequency, in Hz, of the tone the note represents.
     """
 
-    def __init__(self, symbol: NoteSymbol, freq_hz: float):
-        if freq_hz <= 0.0:
-            raise ValueError(f"{type(self).__name__}: Expected a frequency above 0 Hz, instead got: {freq_hz!r}")
-        
-        self.symbol: str = symbol
-        self.freq_hz: float = freq_hz
+    symbol: NoteSymbol
+    freq_hz: float
+
+    def __post_init__(self):
+        if self.freq_hz <= 0.0:
+            raise ValueError(f"{type(self).__name__}: Expected a frequency above 0 Hz, instead got: {self.req_hz!r}")
     
     def __str__(self) -> str:
         return str(self.symbol)
