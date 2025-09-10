@@ -18,7 +18,7 @@ RECORDING_DIR_PATH: str = "wav"
 
 # A ratio at which to stop decreasing the threshold on an RMS signal.
 # Passed in as the "delta" argument to threshold.compute_threshold_float64(...) for metallophone Gamelans.
-METALLOPHONE_RMS_THRESHOLD_RATIO_LIMIT: float = 1.02
+METALLOPHONE_RMS_THRESHOLD_RATIO_DELTA: float = 1.02
 
 # The minimum length of a key strike for the metallophone Gamelan instruments, in seconds.
 METALLOPHONE_MIN_KEY_STRIKE_LENGTH_SECONDS: float = 0.5
@@ -27,7 +27,13 @@ METALLOPHONE_MIN_KEY_STRIKE_LENGTH_SECONDS: float = 0.5
 METALLOPHONE_REPEATED_STRIKE_DELTA_HZ: float = 3
 
 
-def parse_metallophone_frequencies_from_wav(wav_file_name: str, is_strike_selection_plot_enabled: bool = False) -> list[float]:
+def parse_metallophone_frequencies_from_wav(
+    wav_file_name: str,
+    rms_threshold_ratio_delta: float = METALLOPHONE_RMS_THRESHOLD_RATIO_DELTA,
+    min_strike_length_s: float = METALLOPHONE_MIN_KEY_STRIKE_LENGTH_SECONDS,
+    repeated_strike_delta_hz: float = METALLOPHONE_REPEATED_STRIKE_DELTA_HZ,
+    is_strike_selection_plot_enabled: bool = False
+) -> list[float]:
     """
     Extract the dominant frequencies of key strikes from a metallophone recording.
 
@@ -62,9 +68,9 @@ def parse_metallophone_frequencies_from_wav(wav_file_name: str, is_strike_select
     padded_normalized_audio_data: npt.NDArray[np.float64] = dsp.pad_to_frame_view_float64(normalized_audio_data, frame_length_samples, hop_length_samples, pad_value=0.0)
 
     audio_data_rms: npt.NDArray[np.float64] = dsp.rms_float64(padded_normalized_audio_data, frame_length_samples, hop_length_samples, mode="average")
-    rms_threshold: float = threshold.compute_threshold_float64(audio_data_rms, delta=METALLOPHONE_RMS_THRESHOLD_RATIO_LIMIT)
+    rms_threshold: float = threshold.compute_threshold_float64(audio_data_rms, delta=rms_threshold_ratio_delta)
 
-    min_blob_size: int = int(METALLOPHONE_MIN_KEY_STRIKE_LENGTH_SECONDS * sample_rate_hz)
+    min_blob_size: int = int(min_strike_length_s * sample_rate_hz)
 
     blob_boundaries: list[tuple[int, int]] = blob.get_blob_boundaries_above_threshold(audio_data_rms, rms_threshold)
     blob_boundaries = blob.filter_blobs_by_size(blob_boundaries, min_blob_size)
@@ -79,4 +85,4 @@ def parse_metallophone_frequencies_from_wav(wav_file_name: str, is_strike_select
     
     blob_freqs: list[float] = list(map(lambda blob: float(dsp.dominant_freq_float64(blob, sample_rate_hz)), blobs))
 
-    return utils.collapse(blob_freqs, METALLOPHONE_REPEATED_STRIKE_DELTA_HZ)
+    return utils.collapse(blob_freqs, repeated_strike_delta_hz)

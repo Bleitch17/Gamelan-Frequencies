@@ -39,8 +39,8 @@ def parse_metallophone_labels_csv(metallophone_labels_csv_path: str) -> dict[str
         A map of key strike recording file names to metallophone label objects.
     """
     labels_dataframe: pd.DataFrame = pd.read_csv(metallophone_labels_csv_path)
-    
-    return labels_dataframe.set_index(FILE_NAME_COL_HEADER)[METALLOPHONE_LABEL_COL_HEADER].to_dict()
+
+    return { row[FILE_NAME_COL_HEADER]: GamelanMetallophoneLabel.from_string(row[METALLOPHONE_LABEL_COL_HEADER]) for _, row in labels_dataframe.iterrows() }
 
 
 def parse_metallophone_notes_csv(metallophone_notes_csv_path: str) -> dict[str, list[NoteSymbol]]:
