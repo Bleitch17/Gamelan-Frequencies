@@ -148,30 +148,36 @@ class RepresentativeNotes:
         self._map: dict[str, dict[int, float]] = defaultdict(defaultdict)
         self._ref_freq_hz: float | None = None
 
+        # Intermediate collection to store the average frequency values before converting to cents.
+        avgs: dict[str, dict[int, float]] = defaultdict(defaultdict)
+
         for note_name in sampled_notes.get_note_names():
             for octave in sampled_notes.get_note_octaves(note_name):
-                self._map[note_name][octave] = sampled_notes.get_average_note_sample(note_name, octave)
+                avgs[note_name][octave] = sampled_notes.get_average_note_sample(note_name, octave)
 
         # If no reference frequency is given, search for the lowest avg frequency to use as the reference.
         if reference_freq_hz is None:
-            for note_name in self._map.keys():
-                for octave in self._map[note_name].keys():
-                    freq_hz: float = self._map[note_name][octave]
+            for note_name in avgs.keys():
+                for octave in avgs[note_name].keys():
+                    freq_hz: float = avgs[note_name][octave]
                     
-                    if ref_freq_hz is None:
-                        ref_freq_hz = freq_hz
+                    if self._ref_freq_hz is None:
+                        self._ref_freq_hz = freq_hz
                     else:
-                        ref_freq_hz = freq_hz if freq_hz < ref_freq_hz else ref_freq_hz
+                        self._ref_freq_hz = freq_hz if freq_hz < self._ref_freq_hz else self._ref_freq_hz
 
         else:
-            ref_freq_hz = reference_freq_hz
+            self._ref_freq_hz = reference_freq_hz
         
-        # Perform the cents calculations using ref_freq_hz
-        for note_name in self._map.keys():
-            for octave in self._map[octave].keys():
-                freq_hz: float = self._map[note_name][octave]
+        if self._ref_freq_hz is None:
+            raise RuntimeError(f"{type(self).__name__}: The stored reference frequency is None.")
 
-                self._map[note_name][octave] = cent.cents_freqs(ref_freq_hz, freq_hz)
+        # Perform the cents calculations using ref_freq_hz
+        for note_name in avgs.keys():
+            for octave in avgs[note_name].keys():
+                freq_hz: float = avgs[note_name][octave]
+
+                self._map[note_name][octave] = cent.cents_freqs(self._ref_freq_hz, freq_hz)
         
     def get_reference_frequency_hz(self) -> float:
         """
@@ -184,6 +190,39 @@ class RepresentativeNotes:
         """
 
         if self._ref_freq_hz is None:
-            raise RuntimeError(f"{type(self).__name__}: The stored reference frequency is None.")
+            raise RuntimeError(f"{type(self).__name__}: The stored reference frequency is None after initialization.")
 
         return self._ref_freq_hz
+
+    def get_note_names(self) -> list[str]:
+        """
+        Get the note names stored in this instance.
+
+        Returns
+        -------
+        out:
+            A list of all the note names stored in this instance.
+        """
+
+        return list(self._map.keys())
+        
+
+    def get_octaves(self, note_name: str) -> list[tuple[int, float]]:
+        """
+        Get representative octave and cents pairs for a given note name.
+
+        Parameters
+        ----------
+        note_name:
+            The name of the note to get the octaves and cents values for.
+
+        Returns
+        -------
+        out:
+            A list of tuples of the form (octave, cents) where the list is sorted in non-decreasing order by octave.
+        """
+
+        if note_name not in self._map:
+            raise KeyError(f"{type(self).__name__}: The given note name: {note_name} is not stored in this instance.")
+        
+        return sorted(self._map[note_name].items(), key=lambda pair: pair[0])

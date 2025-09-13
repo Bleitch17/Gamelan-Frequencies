@@ -2,9 +2,14 @@ import matplotlib
 
 import numpy as np
 import numpy.typing as npt
+import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 
+import cent
 import dsp
+
+from metallophone import GamelanMetallophone
+from notecontainers import RepresentativeNotes
 
 # Need this line on Linux so I can pip install matplotlib locally for Python versions different than the system version.
 matplotlib.use("Qt5Agg")
@@ -138,5 +143,114 @@ def plot_test_numerals() -> None:
     # Optional: limit y-axis to only that range
     plt.ylim(-0.5, 4.5)
     plt.grid(True)
+
+    plt.show()
+
+
+def metallophone_to_coordinates(metallophone: GamelanMetallophone, reference_freq_hz: float) -> list[tuple[int, float]]:
+    """
+    Convert the notes stored in a given GamelanMetallophone instance to coordinates (octave, cents) pairs.
+
+    Parameters
+    ----------
+    metallophone:
+        The GamelanMetallophone instance that contains the notes to convert to coordinates.
+
+    reference_freq_hz:
+        A reference frequency to use in the cents calculation.
+
+    Returns
+    -------
+    out:
+        A list of (octave, cents) tuples.
+    """
+
+    return list(map(lambda note: (note.symbol.octave, cent.cents_freqs(reference_freq_hz, note.freq_hz)), metallophone.notes))
+
+
+def metallophone_spike_plot(upper_representative_notes: RepresentativeNotes, lower_representative_notes: RepresentativeNotes, leader: GamelanMetallophone | None = None) -> None:
+    """
+    Create a spike plot for a metallophone family, given the representative notes from the upper and lower instruments.
+
+    Parameters
+    ----------
+    upper_representative_notes:
+        A RepresentativeNotes instance for the upper metallophones in the family.
+    
+    lower_representative_notes:
+        A RepresentativeNotes instance for the lower metallophones in the family.
+
+    leader:
+        A GamelanMetallophone instance for the leading metallophone in the family. May be None, in which case it will not be included
+        in the plot.
+    """
+
+    _, ax = plt.subplots()
+
+    # Use Roman Numeral labels for the octaves.
+    yticks: npt.NDArray[np.integer] = np.arange(6)[1:]
+    ylabels = ["I", "II", "III", "IV", "V"]
+
+    plt.yticks(yticks, ylabels)
+
+    upper_note_bases: dict[str, float] = {}
+    lower_note_bases: dict[str, float] = {}
+
+    for note_name in upper_representative_notes.get_note_names():
+        coords: list[tuple[int, float]] = upper_representative_notes.get_octaves(note_name)
+
+        octaves: list[int] = list(map(lambda coord: coord[0], coords))
+        cents: list[float] = list(map(lambda coord: coord[1] + 100.0 - ((coord[0] - 1) * 1200), coords))
+
+        upper_note_bases[note_name] = cents[0]
+
+        ax.plot(cents, octaves, linestyle="-", color="orange")
+
+    for note_name in lower_representative_notes.get_note_names():
+        coords: list[tuple[int, float]] = lower_representative_notes.get_octaves(note_name)
+
+        octaves: list[int] = list(map(lambda coord: coord[0], coords))
+        cents: list[float] = list(map(lambda coord: coord[1] + 100.0 - ((coord[0] - 1) * 1200), coords))
+
+        lower_note_bases[note_name] = cents[0]
+
+        ax.plot(cents, octaves, linestyle="-", color="blue")
+
+    if leader is not None:
+        coords: list[tuple[int, float]] = metallophone_to_coordinates(leader, lower_representative_notes.get_reference_frequency_hz())
+
+        octaves: list[int] = list(map(lambda coord: coord[0], coords))
+        cents: list[float] = list(map(lambda coord: coord[1] + 100.0 - ((coord[0] - 1) * 1200), coords))
+
+        ax.plot(cents, octaves, marker="o", linestyle="None", color="lime")
+
+    # Determining the custom x ticks.
+    x_tick_locations: list[float] = []
+    x_tick_symbols: list[str] = []
+
+    for note_name in upper_note_bases.keys():
+        lower_point: float = lower_note_bases[note_name]
+        upper_point: float = upper_note_bases[note_name]
+
+        x_tick_locations.append((lower_point + upper_point) / 2)
+        x_tick_symbols.append(note_name)
+
+    ax.tick_params(axis="x", which="both", bottom=False, top=False)
+
+    plt.xticks(x_tick_locations, x_tick_symbols)
+
+    # Creating proxy artists for the plot legend:
+    proxy_artists = [mlines.Line2D([], [], color="blue"), mlines.Line2D([], [], color="orange")]
+    labels: list[str] = ["Lower", "Upper"]
+
+    if leader is not None:
+        proxy_artists.append(mlines.Line2D([], [], color="lime"))
+        labels.append("Leader")
+
+    ax.legend(proxy_artists, labels)
+
+    ax.grid(axis="y")
+    ax.set_xlabel("Cents")
+    ax.set_ylabel("Octaves")
 
     plt.show()
