@@ -119,7 +119,7 @@ class Note:
 
     def __post_init__(self):
         if self.freq_hz <= 0.0:
-            raise ValueError(f"{type(self).__name__}: Expected a frequency above 0 Hz, instead got: {self.req_hz!r}")
+            raise ValueError(f"{type(self).__name__}: Expected a frequency above 0 Hz, instead got: {self.freq_hz!r}")
     
     def __str__(self) -> str:
         return str(self.symbol)

@@ -1,8 +1,8 @@
 from metallophone import GamelanMetallophone, GamelanMetallophoneLabel
 from note import Note, NoteSymbol
-from note_samples import NoteSamples
+from notecontainers import SampledNotes
 
-import gamelan_files
+import gamelanfiles
 import recording
 
 
@@ -101,8 +101,8 @@ def split_metallophones(metallophones: list[GamelanMetallophone]) -> tuple[Gamel
 
 
 if __name__ == "__main__":
-    file_to_label_map: dict[str, GamelanMetallophoneLabel] = gamelan_files.parse_metallophone_labels_csv("metallophone_labels.csv")
-    name_to_note_symbols_map: dict[str, NoteSymbol] = gamelan_files.parse_metallophone_notes_csv("metallophone_notes.csv")
+    file_to_label_map: dict[str, GamelanMetallophoneLabel] = gamelanfiles.parse_metallophone_labels_csv("metallophone_labels.csv")
+    name_to_note_symbols_map: dict[str, NoteSymbol] = gamelanfiles.parse_metallophone_notes_csv("metallophone_notes.csv")
 
     metallophones: list[GamelanMetallophone] = get_metallophones(file_to_label_map, name_to_note_symbols_map)
 
@@ -127,6 +127,6 @@ if __name__ == "__main__":
     
     leading_metallophone, upper_metallophones, lower_metallophones = split_metallophones(metallophones)
 
-    upper_note_samples: NoteSamples = NoteSamples(notes=upper_metallophones[0].notes[:3])
+    upper_note_samples: SampledNotes = SampledNotes(notes=upper_metallophones[0].notes[:3])
 
     print(upper_note_samples._map)
