@@ -77,6 +77,12 @@ def parse_metallophone_notes_csv(metallophone_notes_csv_path: str) -> dict[str, 
 
     note_column_headers: pd.Series = notes_dataframe.columns[1:-1]
 
+    # Find any note symbol columns where there aren't any 1's.
+    empty_note_columns: pd.Series = note_column_headers[(notes_dataframe[note_column_headers].sum() == 0)]
+
+    if empty_note_columns.shape[0] > 0:
+        raise ValueError(f"{parse_metallophone_notes_csv.__name__}: Found empty note columns: {empty_note_columns}")
+
     name_to_notes_map: dict[str, NoteSymbol] = {}
 
     for _, row in notes_dataframe.iterrows():
@@ -84,7 +90,7 @@ def parse_metallophone_notes_csv(metallophone_notes_csv_path: str) -> dict[str, 
         note_symbols: list[NoteSymbol] = [NoteSymbol.from_string(note_symbol_str) for note_symbol_str in note_column_headers if row[note_symbol_str] == 1]
 
         if len(note_symbols) != row[SUM_COL_HEADER]:
-            raise ValueError(f"Mismatch between row sum and number of notes in Metallophone Notes .csv file. Row: {row}")
+            raise ValueError(f"{parse_metallophone_notes_csv.__name__}: Mismatch between row sum and number of notes in Metallophone Notes .csv file. Row: {row}")
 
         name_to_notes_map[metallophone_name] = note_symbols
     

@@ -32,6 +32,7 @@ def parse_metallophone_frequencies_from_wav(
     rms_threshold_ratio_delta: float = METALLOPHONE_RMS_THRESHOLD_RATIO_DELTA,
     min_strike_length_s: float = METALLOPHONE_MIN_KEY_STRIKE_LENGTH_SECONDS,
     repeated_strike_delta_hz: float = METALLOPHONE_REPEATED_STRIKE_DELTA_HZ,
+    recording_dir_path: str = RECORDING_DIR_PATH,
     is_strike_selection_plot_enabled: bool = False
 ) -> list[float]:
     """
@@ -43,7 +44,7 @@ def parse_metallophone_frequencies_from_wav(
         The name of a .wav file containing an audio recording of key strikes for a particular metallophone.
         The key strikes in the recording are assumed to be ordered from lowest note (frequency) to highest note (frequency).
         Each key strike is expected to last for more than half a second, and two key strikes should not overlap.
-        A given key may be struck multiple times in a row, in which case the average frequency of the repeated striks is
+        A given key may be struck multiple times in a row, in which case the average frequency of the repeated strikes is
         returned for that key.
     
     is_strike_selection_plot_enabled:
@@ -56,7 +57,7 @@ def parse_metallophone_frequencies_from_wav(
         A list of frequencies. Each frequency in the list represents the dominant frequency detected in a single key strike. The frequencies
         follow the same ordering as the key strikes in the recording, so out[0] is the dominant frequency for the first key strike.
     """
-    sample_rate_hz, data = wavfile.read(os.path.join(RECORDING_DIR_PATH, wav_file_name))
+    sample_rate_hz, data = wavfile.read(os.path.join(recording_dir_path, wav_file_name))
 
     # Convert audio signal to normalized float64 format (values are in [-1.0, 1.0)).
     # Extracting the first channel (assuming both channels are the same).
